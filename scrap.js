@@ -22,11 +22,10 @@ async function scrapPage(pageNumber) {
     });
 
     // extract options
-
     $(".list-group-item .row").each((i, el) => {
       const options = [];
-      $(el).each((I, El) => {
-        const option = $(El).find("span").text().trim();
+      $(el).find("span").each((I, El) => {
+        const option = $(El).text().trim();
         options.push(option);
       });
 
@@ -36,12 +35,16 @@ async function scrapPage(pageNumber) {
     });
 
     // extract answers
-
     $(".collapse h5").each((i, el) => {
-      const answer = $(el).find("span").text();
+      const answer = $(el).find("span").text().trim();
       if (questions[i]) {
         questions[i].answers = answer;
       }
+    });
+
+    // Format options as a string
+    questions.forEach((q) => {
+      q.options = q.options.join("; "); // Use semicolon to separate options
     });
 
     return questions;
@@ -62,7 +65,9 @@ async function Pagination() {
     }
     allpage.push(...questions);
   }
-  const parser = new Parser();
+
+  const fields = ["id", "question", "options", "answers"];
+  const parser = new Parser({ fields });
   const csv = parser.parse(allpage);
   fs.writeFileSync("data.csv", csv, "utf-8");
 }
