@@ -16,7 +16,7 @@ async function scrapPage(pageNumber) {
     // extracting questions
     $("ol[start] li div").each((index, element) => {
       const question = $(element).text().trim();
-      questions.push({ id: index + 1, question, options: [], answer: "" });
+      questions.push({ id: index + 1, question, options: [], answer: "",description :"" });
     });
 
     // extract options
@@ -37,6 +37,14 @@ async function scrapPage(pageNumber) {
       const answer = $(el).find("span").text().trim();
       if (questions[i]) {
         questions[i].answer = answer;
+      }
+    });
+
+    // extract description
+    $(".collapse p").each((i, el) => {
+      const description = $(el).text().trim();
+      if (questions[i]) {
+        questions[i].description = description;
       }
     });
 
@@ -64,7 +72,7 @@ async function Pagination() {
   const maxOptions = allQuestions.reduce((max, q) => Math.max(max, q.options.length), 0);
 
   // Create dynamic fields for options
-  const fields = ["id", "question", "answer"];
+  const fields = ["id", "question", "answer","description"];
   for (let i = 1; i <= maxOptions; i++) {
     fields.push(`option${i}`);
   }
@@ -75,6 +83,7 @@ async function Pagination() {
       id: q.id,
       question: q.question,
       answer: q.answer,
+      description : q.description
     };
 
     // Assign options to their respective columns
