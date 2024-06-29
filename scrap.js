@@ -3,9 +3,7 @@ const cheerio = require("cheerio");
 const fs = require("fs");
 const { Parser } = require("json2csv");
 
-const baseurl =
-  "https://interviewmania.com/gk-general-knowledge/international-events/1/";
-// "https://interviewmania.com/gk-general-knowledge/art-and-culture/1/1#";
+const baseurl = "https://interviewmania.com/gk-general-knowledge/international-events/1/";
 
 async function scrapPage(pageNumber) {
   let url = `${baseurl}${pageNumber}`;
@@ -18,7 +16,7 @@ async function scrapPage(pageNumber) {
     // extracting questions
     $("ol[start] li div").each((index, element) => {
       const question = $(element).text().trim();
-      questions.push({ id: index + 1, question, options: [], answers: [] });
+      questions.push({ id: index + 1, question, options: [], answer: "" });
     });
 
     // extract options
@@ -38,13 +36,8 @@ async function scrapPage(pageNumber) {
     $(".collapse h5").each((i, el) => {
       const answer = $(el).find("span").text().trim();
       if (questions[i]) {
-        questions[i].answers = answer;
+        questions[i].answer = answer;
       }
-    });
-
-    // Format options as a string
-    questions.forEach((q) => {
-      q.options = q.options.join("; "); // Use semicolon to separate options
     });
 
     return questions;
@@ -54,21 +47,51 @@ async function scrapPage(pageNumber) {
 }
 
 async function Pagination() {
-  const allpage = [];
+  const allQuestions = [];
   let pageNumber = 1;
-  for (let page = 1; ; pageNumber++) {
+  while (true) {
     console.log(`Scraping page ${pageNumber}`);
     const questions = await scrapPage(pageNumber);
     if (!questions || questions.length === 0) {
       console.log(`No more page ${pageNumber}. Stop.`);
       break;
     }
-    allpage.push(...questions);
+    allQuestions.push(...questions);
+    pageNumber++;
   }
 
-  const fields = ["id", "question", "options", "answers"];
+  // Find the maximum number of options
+  const maxOptions = allQuestions.reduce((max, q) => Math.max(max, q.options.length), 0);
+
+  // Create dynamic fields for options
+  const fields = ["id", "question", "answer"];
+  for (let i = 1; i <= maxOptions; i++) {
+    fields.push(`option${i}`);
+  }
+
+  // Format each question to include separate columns for each option
+  const formattedQuestions = allQuestions.map((q) => {
+    const formattedQuestion = {
+      id: q.id,
+      question: q.question,
+      answer: q.answer,
+    };
+
+    // Assign options to their respective columns
+    q.options.forEach((option, index) => {
+      formattedQuestion[`option${index + 1}`] = option;
+    });
+
+    // Ensure all option columns are present
+    for (let i = q.options.length + 1; i <= maxOptions; i++) {
+      formattedQuestion[`option${i}`] = "";
+    }
+
+    return formattedQuestion;
+  });
+
   const parser = new Parser({ fields });
-  const csv = parser.parse(allpage);
+  const csv = parser.parse(formattedQuestions);
   fs.writeFileSync("data.csv", csv, "utf-8");
 }
 
