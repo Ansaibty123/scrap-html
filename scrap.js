@@ -16,7 +16,9 @@ async function scrapPage(pageNumber) {
     // extracting questions
     $("ol[start] li div").each((index, element) => {
       const question = $(element).text().trim();
-      questions.push({ id: index + 1, question, options: [], answer: "",description :"" });
+      const questionId = `${pageNumber}-${index + 1}`;
+      questions.push({ id: questionId, question, options: [], answer: "", description: "" });
+      
     });
 
     // extract options
@@ -41,8 +43,8 @@ async function scrapPage(pageNumber) {
     });
 
     // extract description
-    $(".collapse p").each((i, el) => {
-      const description = $(el).text().trim();
+    $(".collapse ").each((i, el) => {
+      const description = $(el).find('p').text().trim();
       if (questions[i]) {
         questions[i].description = description;
       }
@@ -59,12 +61,13 @@ async function Pagination() {
   let pageNumber = 1;
   while (true) {
     console.log(`Scraping page ${pageNumber}`);
-    const questions = await scrapPage(pageNumber);
-    if (!questions || questions.length === 0) {
+    const questionScrap = await scrapPage(pageNumber);
+    if (!questionScrap || questionScrap.length === 0) {
       console.log(`No more page ${pageNumber}. Stop.`);
       break;
     }
-    allQuestions.push(...questions);
+    
+    allQuestions.push(...questionScrap);
     pageNumber++;
   }
 
@@ -74,7 +77,7 @@ async function Pagination() {
   // Create dynamic fields for options
   const fields = ["id", "question", "answer","description"];
   for (let i = 1; i <= maxOptions; i++) {
-    fields.push(`option${i}`);
+    fields.splice(2,0,`option${i}`);
   }
 
   // Format each question to include separate columns for each option
@@ -82,6 +85,7 @@ async function Pagination() {
     const formattedQuestion = {
       id: q.id,
       question: q.question,
+      options : q.option,
       answer: q.answer,
       description : q.description
     };
