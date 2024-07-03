@@ -13,15 +13,14 @@ async function scrapPage(pageNumber) {
     const $ = cheerio.load(html);
     const questions = [];
 
-    // extracting questions
+    // Extract questions
     $("ol[start] li div").each((index, element) => {
       const question = $(element).text().trim();
       const questionId = `${pageNumber}-${index + 1}`;
       questions.push({ id: questionId, question, options: [], answer: "", description: "" });
-      
     });
 
-    // extract options
+    // Extract options
     $(".list-group-item .row").each((i, el) => {
       const options = [];
       $(el).find("span").each((I, El) => {
@@ -34,7 +33,7 @@ async function scrapPage(pageNumber) {
       }
     });
 
-    // extract answers
+    // Extract answers
     $(".collapse h5").each((i, el) => {
       const answer = $(el).find("span").text().trim();
       if (questions[i]) {
@@ -42,8 +41,8 @@ async function scrapPage(pageNumber) {
       }
     });
 
-    // extract description
-    $(".collapse ").each((i, el) => {
+    // Extract description
+    $(".collapse").each((i, el) => {
       const description = $(el).find('p').text().trim();
       if (questions[i]) {
         questions[i].description = description;
@@ -66,28 +65,37 @@ async function Pagination() {
       console.log(`No more page ${pageNumber}. Stop.`);
       break;
     }
-    
+
     allQuestions.push(...questionScrap);
     pageNumber++;
   }
 
+  // Check for duplicates
+  const uniqueQuestions = [];
+  const questionSet = new Set();
+  allQuestions.forEach(q => {
+    if (!questionSet.has(q.question)) {
+      questionSet.add(q.question);
+      uniqueQuestions.push(q);
+    }
+  });
+
   // Find the maximum number of options
-  const maxOptions = allQuestions.reduce((max, q) => Math.max(max, q.options.length), 0);
+  const maxOptions = uniqueQuestions.reduce((max, q) => Math.max(max, q.options.length), 0);
 
   // Create dynamic fields for options
-  const fields = ["id", "question", "answer","description"];
+  const fields = ["id", "question", "answer", "description"];
   for (let i = 1; i <= maxOptions; i++) {
-    fields.splice(2,0,`option${i}`);
+    fields.splice(2, 0, `option${i}`);
   }
 
   // Format each question to include separate columns for each option
-  const formattedQuestions = allQuestions.map((q) => {
+  const formattedQuestions = uniqueQuestions.map((q) => {
     const formattedQuestion = {
       id: q.id,
       question: q.question,
-      options : q.option,
       answer: q.answer,
-      description : q.description
+      description: q.description
     };
 
     // Assign options to their respective columns
@@ -107,6 +115,5 @@ async function Pagination() {
   const csv = parser.parse(formattedQuestions);
   fs.writeFileSync("data.csv", csv, "utf-8");
 }
-
 
 Pagination();
